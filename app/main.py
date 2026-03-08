@@ -1,42 +1,106 @@
 import json
-import xml.etree.ElementTree as ET
+import xml.etree.ElementTree as ElementTree
 
 
 class Book:
-    def __init__(self, title: str, content: str):
+    def __init__(self, title: str, content: str) -> None:
         self.title = title
         self.content = content
 
     def display(self, display_type: str) -> None:
-        if display_type == "console":
-            print(self.content)
-        elif display_type == "reverse":
-            print(self.content[::-1])
-        else:
+        strategy = display_strategies.get(display_type)
+
+        if not strategy:
             raise ValueError(f"Unknown display type: {display_type}")
 
+        strategy.display(self)
+
     def print_book(self, print_type: str) -> None:
-        if print_type == "console":
-            print(f"Printing the book: {self.title}...")
-            print(self.content)
-        elif print_type == "reverse":
-            print(f"Printing the book in reverse: {self.title}...")
-            print(self.content[::-1])
-        else:
+        strategy = print_strategies.get(print_type)
+
+        if not strategy:
             raise ValueError(f"Unknown print type: {print_type}")
 
+        strategy.print_book(self)
+
     def serialize(self, serialize_type: str) -> str:
-        if serialize_type == "json":
-            return json.dumps({"title": self.title, "content": self.content})
-        elif serialize_type == "xml":
-            root = ET.Element("book")
-            title = ET.SubElement(root, "title")
-            title.text = self.title
-            content = ET.SubElement(root, "content")
-            content.text = self.content
-            return ET.tostring(root, encoding="unicode")
-        else:
+        serializer = serializers.get(serialize_type)
+
+        if not serializer:
             raise ValueError(f"Unknown serialize type: {serialize_type}")
+
+        return serializer.serialize(self)
+
+
+class DisplayStrategy:
+    def display(self, book: Book) -> None:
+        raise NotImplementedError
+
+
+class ConsoleDisplay(DisplayStrategy):
+    def display(self, book: Book) -> None:
+        print(book.content)
+
+
+class ReverseDisplay(DisplayStrategy):
+    def display(self, book: Book) -> None:
+        print(book.content[::-1])
+
+
+display_strategies = {
+    "console": ConsoleDisplay(),
+    "reverse": ReverseDisplay(),
+}
+
+
+class PrintStrategy:
+    def print_book(self, book: Book) -> None:
+        raise NotImplementedError
+
+
+class ConsolePrint(PrintStrategy):
+    def print_book(self, book: Book) -> None:
+        print(f"Printing the book: {book.title}...")
+        print(book.content)
+
+
+class ReversePrint(PrintStrategy):
+    def print_book(self, book: Book) -> None:
+        print(f"Printing the book in reverse: {book.title}...")
+        print(book.content[::-1])
+
+
+print_strategies = {
+    "console": ConsolePrint(),
+    "reverse": ReversePrint(),
+}
+
+
+class SerializeStrategy:
+    def serialize(self, book: Book) -> str:
+        raise NotImplementedError
+
+
+class JSONSerializer(SerializeStrategy):
+    def serialize(self, book: Book) -> str:
+        return json.dumps({"title": book.title, "content": book.content})
+
+
+class XmlSerializer(SerializeStrategy):
+    def serialize(self, book: Book) -> str:
+        root = ElementTree.Element("book")
+        title = ElementTree.SubElement(root, "title")
+        title.text = book.title
+        content = ElementTree.SubElement(root, "content")
+        content.text = book.content
+
+        return ElementTree.tostring(root, encoding="unicode")
+
+
+serializers = {
+    "json": JSONSerializer(),
+    "xml": XmlSerializer(),
+}
 
 
 def main(book: Book, commands: list[tuple[str, str]]) -> None | str:
